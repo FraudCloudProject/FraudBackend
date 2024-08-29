@@ -1,10 +1,17 @@
-import pdfplumber
+import fitz  # PyMuPDF
 
 def pdf_to_text(file_path):
+    # Open the PDF file
+    doc = fitz.open(file_path)
     text = ""
-    with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() + "\n"
+
+    # Iterate through the pages and extract text
+    for page_num in range(doc.page_count):
+        page = doc.load_page(page_num)
+        text += page.get_text()
+
+    # Close the document
+    doc.close()
     return text
 
 if __name__ == "__main__":
