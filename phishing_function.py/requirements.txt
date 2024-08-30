@@ -1,0 +1,7 @@
+azure-functions
+azure-storage-blob
+azure-ai-textanalytics
+azure-core
+requests
+azure-identity
+python-dotenv
