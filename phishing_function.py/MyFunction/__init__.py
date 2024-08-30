@@ -5,14 +5,15 @@ from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
 import requests
 import json
+import os
 
 # Set up Azure Cognitive Services client
-endpoint = "YOUR_TEXT_ANALYTICS_ENDPOINT"
-key = "YOUR_TEXT_ANALYTICS_KEY"
+endpoint = "https://homaphising.cognitiveservices.azure.com/"
+key = os.environ['KEY']
 text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=AzureKeyCredential(key))
 
 # Fraud detection model endpoint
-model_endpoint = "YOUR_MODEL_ENDPOINT"
+model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Processing upload...')
