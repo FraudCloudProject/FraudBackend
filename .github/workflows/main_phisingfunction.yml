@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.phishing_function' # set this to the path to your web app project, defaults to the repository root
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.phishing_function.py' # set this to the path to your web app project, defaults to the repository root
   PYTHON_VERSION: '3.11' # set this to the python version to use (supports 3.6, 3.7, 3.8)
 
 jobs:
@@ -32,7 +32,8 @@ jobs:
           source venv/bin/activate
 
       - name: Install dependencies
-        run: pip install -r phishing_function/requirements.txt
+        run: pip install -r requirements.txt
+
       # Optional: Add step to run tests here
 
       - name: Zip artifact for deployment
@@ -69,6 +70,7 @@ jobs:
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5DDAB9A1DB214806B0C780A16AB252B3 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_701DF401156B46C28EE071BE7E6623D6 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_652EED63E28D46459FAB7F0A006818C1 }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: 'Deploy to Azure Functions'
