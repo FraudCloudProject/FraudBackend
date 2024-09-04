@@ -17,36 +17,57 @@ text_analytics_client = TextAnalyticsClient(
 model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
 
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Processing upload...')
+    logging.info('Processing a request.')
 
-    try:
-        # Retrieve uploaded file from request
-        uploaded_file = req.files['file']
-
-        # Process the file content using Text Analytics
-        documents = [uploaded_file.read().decode('utf-8')]
-        response = text_analytics_client.analyze_sentiment(documents=documents)
-        sentiments = [doc.sentiment for doc in response]
-
-        # Call the fraud detection model with processed features
-        model_response = requests.post(
-            model_endpoint, json={"text": documents[0], "sentiments": sentiments})
-        result = model_response.json()
-
+    # Handle OPTIONS requests for CORS preflight
+    if req.method == 'OPTIONS':
+        # Provide CORS headers
         headers = {
-            # Replace with your frontend domain
             "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type"
         }
-
         return func.HttpResponse(
-            json.dumps({"message": "Request processed successfully"}),
-            status_code=200,
-            mimetype="application/json",
-            headers=headers
+            "", status_code=204, headers=headers
         )
-    except Exception as e:
-        logging.error(f"Error processing request: {e}")
-        return func.HttpResponse(f"Error processing request: {e}", status_code=500)
+
+    # Handle POST request (or other methods)
+    if req.method == 'POST':
+        try:
+            # Example logic for POST request
+            req_body = req.get_json()
+            # Here you would process the JSON data as needed for fraud detection
+            result = {"message": "Data processed successfully", "data": req_body}
+
+            # Send a successful response with CORS headers
+            headers = {
+                "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
+                "Content-Type": "application/json"
+            }
+            return func.HttpResponse(
+                json.dumps(result),
+                status_code=200,
+                headers=headers
+            )
+
+        except ValueError:
+            # Handle JSON parsing errors
+            return func.HttpResponse(
+                json.dumps({"error": "Invalid JSON input"}),
+                status_code=400,
+                mimetype="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net"
+                }
+            )
+
+    # If the method is not supported, return a 405 Method Not Allowed response
+    return func.HttpResponse(
+        "Method not allowed",
+        status_code=405,
+        headers={
+            "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net"
+        }
+    )
