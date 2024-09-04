@@ -31,8 +31,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         model_response = requests.post(model_endpoint, json={"text": documents[0], "sentiments": sentiments})
         result = model_response.json()
 
-        return func.HttpResponse(json.dumps(result), mimetype="application/json")
+        headers = {
+                "Access-Control-Allow-Origin": "*",  # Allow requests from all domains (use a specific domain in production)
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
+            }
 
+        return func.HttpResponse(
+            json.dumps(result),
+            mimetype="application/json",
+            headers=headers
+        )
     except Exception as e:
         logging.error(f"Error processing request: {e}")
         return func.HttpResponse(f"Error processing request: {e}", status_code=500)
+
+    
