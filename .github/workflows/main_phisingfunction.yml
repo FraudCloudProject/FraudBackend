@@ -68,6 +68,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5DDAB9A1DB214806B0C780A16AB252B3 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_701DF401156B46C28EE071BE7E6623D6 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_652EED63E28D46459FAB7F0A006818C1 }}
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: 'Deploy to Azure Functions'
@@ -80,3 +83,9 @@ jobs:
           scm-do-build-during-deployment: true
           enable-oryx-build: true
           
+        # Add this step to use your API keys in the deployment process
+      - name: Use API Keys
+        run: |
+          echo "Using API Key 1: ${{ secrets.API_KEY_1 }}"
+          echo "Using API Key 2: ${{ secrets.API_KEY_2 }}"
+          # Example usage of API keys in a deployment command or script    
