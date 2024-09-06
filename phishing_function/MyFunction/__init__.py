@@ -36,9 +36,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if req.method == 'POST':
         try:
             # Example logic for POST request
-            req_body = req.get_json()
+            # req_body = req.get_json()
             # Here you would process the JSON data as needed for fraud detection
-            result = {"message": "Data processed successfully", "data": req_body}
+            # result = {"message": "Data processed successfully"}
 
             # Send a successful response with CORS headers
             headers = {
@@ -46,7 +46,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "Content-Type": "application/json"
             }
             return func.HttpResponse(
-                json.dumps(result),
                 status_code=200,
                 headers=headers
             )
