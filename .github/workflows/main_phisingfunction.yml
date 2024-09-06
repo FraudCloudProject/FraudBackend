@@ -12,7 +12,10 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './phishing_function' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.11' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  PYTHON_VERSION: '3.11' # set this to the python version to use (supports 3.6, 3.7, 3.8)¨
+  API_KEY_1: ${{ secrets.API_KEY_1 }}
+  API_KEY_2: ${{ secrets.API_KEY_2 }}
+
 
 jobs:
   build:
@@ -83,9 +86,9 @@ jobs:
           scm-do-build-during-deployment: true
           enable-oryx-build: true
 
-        # Add this step to use your API keys in the deployment process
-      - name: Use API Keys
-        run: |
-          echo "Using API Key 1: ${{ secrets.API_KEY_1 }}"
-          echo "Using API Key 2: ${{ secrets.API_KEY_2 }}"
-          # Example usage of API keys in a deployment command or script    
+      #   # Add this step to use your API keys in the deployment process
+      # - name: Use API Keys
+      #   run: |
+      #     echo "Using API Key 1: ${{ secrets.API_KEY_1 }}"
+      #     echo "Using API Key 2: ${{ secrets.API_KEY_2 }}"
+      #     # Example usage of API keys in a deployment command or script    
