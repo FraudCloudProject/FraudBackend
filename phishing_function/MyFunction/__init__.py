@@ -60,7 +60,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     headers=headers,
                     mimetype="application/json"
                 )
-
+        except ValueError as ve:
+            logging.error(f"ValueError: {str(ve)}")
+            return func.HttpResponse(
+                json.dumps({"error": "Invalid JSON input"}),
+                status_code=400,
+                headers=headers,
+                mimetype="application/json"
+            )
         except Exception as e:
             logging.error(f"Unexpected error: {str(e)}")
             return func.HttpResponse(
