@@ -1,19 +1,18 @@
 {
+  "scriptFile": "__init__.py",
   "bindings": [
     {
       "authLevel": "function",
       "type": "httpTrigger",
       "direction": "in",
-      "methods": [
-        "get",
-        "post",
-        "options"
-      ],
-      "route": "MyFunction"
+      "name": "req",
+      "methods": ["post"],
+      "route": "mycustomroute"  // Custom route for easier access
     },
     {
       "type": "http",
-      "direction": "out"
+      "direction": "out",
+      "name": "$return"
     }
   ]
 }
