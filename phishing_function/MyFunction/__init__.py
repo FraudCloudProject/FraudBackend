@@ -1,71 +1,59 @@
 import logging
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient
-from azure.ai.textanalytics import TextAnalyticsClient
-from azure.core.credentials import AzureKeyCredential
-import requests
 import json
 import os
 
-# Set up Azure Cognitive Services client
-endpoint = "https://homaphising.cognitiveservices.azure.com/"
-# key_1 = os.environ['API_KEY_1']
-# key_2 = os.environ['API_KEY_2']
-# text_analytics_client = TextAnalyticsClient(
-#     endpoint=endpoint, credential=AzureKeyCredential(key_1))
-
-# Fraud detection model endpoint
-model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
-
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Processing a request.')
+    logging.info('Python HTTP trigger function processed a request.')
+
+    # CORS headers
+    headers = {
+        "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+    }
 
     # Handle OPTIONS requests for CORS preflight
     if req.method == 'OPTIONS':
-        # Provide CORS headers
-        headers = {
-            "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type"
-        }
-        return func.HttpResponse(
-            "", status_code=204, headers=headers
-        )
+        return func.HttpResponse("", status_code=204, headers=headers)
 
-    # Handle POST request (or other methods)
+    # Handle POST request
     if req.method == 'POST':
         try:
-            # Example logic for POST request
-            # req_body = req.get_json()
-            # Here you would process the JSON data as needed for fraud detection
-            # result = {"message": "Data processed successfully"}
+            req_body = req.get_json()
+            logging.info(f"Received request body: {req_body}")
 
-            # Send a successful response with CORS headers
-            headers = {
-                "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
-                "Content-Type": "application/json"
-            }
+            # Your processing logic here
+            # For now, we'll just echo back the received data
+            result = {"message": "Data received successfully", "data": req_body}
+
             return func.HttpResponse(
+                json.dumps(result),
                 status_code=200,
-                headers=headers
+                headers=headers,
+                mimetype="application/json"
             )
-
-        except ValueError:
-            # Handle JSON parsing errors
+        except ValueError as ve:
+            logging.error(f"ValueError: {str(ve)}")
             return func.HttpResponse(
                 json.dumps({"error": "Invalid JSON input"}),
                 status_code=400,
-                content_type="application/json",
-                headers={
-                    "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net"
-                }
+                headers=headers,
+                mimetype="application/json"
+            )
+        except Exception as e:
+            logging.error(f"Unexpected error: {str(e)}")
+            return func.HttpResponse(
+                json.dumps({"error": "Internal server error", "details": str(e)}),
+                status_code=500,
+                headers=headers,
+                mimetype="application/json"
             )
 
     # If the method is not supported, return a 405 Method Not Allowed response
     return func.HttpResponse(
-        "Method not allowed",
+        json.dumps({"error": "Method not allowed"}),
         status_code=405,
-        headers={
-            "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net"
-        }
+        headers=headers,
+        mimetype="application/json"
     )
