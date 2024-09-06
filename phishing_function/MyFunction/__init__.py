@@ -8,12 +8,13 @@ import json
 import os
 
 # Set up Azure Cognitive Services client
-endpoint = "https://homaphising.cognitiveservices.azure.com/"
-text_analytics_client = TextAnalyticsClient(
-    endpoint=endpoint, credential=AzureKeyCredential(key))
+# endpoint = "https://homaphising.cognitiveservices.azure.com/"
+# key = os.environ['KEY']
+# text_analytics_client = TextAnalyticsClient(
+#     endpoint=endpoint, credential=AzureKeyCredential(key))
 
-# Fraud detection model endpoint
-model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
+# # Fraud detection model endpoint
+# model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
 
 
