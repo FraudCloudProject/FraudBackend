@@ -9,7 +9,6 @@ import os
 
 # Set up Azure Cognitive Services client
 endpoint = "https://homaphising.cognitiveservices.azure.com/"
-key = os.environ['KEY']
 text_analytics_client = TextAnalyticsClient(
     endpoint=endpoint, credential=AzureKeyCredential(key))
 
