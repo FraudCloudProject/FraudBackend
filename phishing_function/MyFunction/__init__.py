@@ -9,10 +9,10 @@ import os
 
 # Set up Azure Cognitive Services client
 endpoint = "https://homaphising.cognitiveservices.azure.com/"
-key_1 = os.environ['API_KEY_1']
-key_2 = os.environ['API_KEY_2']
-text_analytics_client = TextAnalyticsClient(
-    endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
+# key_1 = os.environ['API_KEY_1']
+# key_2 = os.environ['API_KEY_2']
+# text_analytics_client = TextAnalyticsClient(
+#     endpoint=endpoint, credential=AzureKeyCredential(key_1))
 
 # Fraud detection model endpoint
 model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
