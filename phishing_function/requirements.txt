@@ -5,3 +5,4 @@ azure-core
 requests
 azure-identity
 python-dotenv
+werkzeug 
