@@ -6,7 +6,7 @@ from requests_toolbelt.multipart import decoder
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
-    # CORS headers
+    
     headers = {
         "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -14,61 +14,48 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     }
     
     try:
-        # Log request details
         logging.info(f"Request method: {req.method}")
         logging.info(f"Request headers: {dict(req.headers)}")
         
-        # Handle OPTIONS requests for CORS preflight
         if req.method == 'OPTIONS':
             return func.HttpResponse("", status_code=204, headers=headers)
         
-        # Handle POST request
         if req.method == 'POST':
-            # Read the request body
             body = req.get_body()
-            content_type = req.headers.get('Content-Type')
+            content_type = req.headers.get('Content-Type', '')
             
             logging.info(f"Content-Type: {content_type}")
             logging.info(f"Body length: {len(body)}")
             
-            # Parse multipart/form-data
-            if content_type and 'multipart/form-data' in content_type:
+            if 'multipart/form-data' in content_type:
                 try:
                     multipart_data = decoder.MultipartDecoder(body, content_type)
                     
-                    # Initialize variables to store form data
                     message_type = None
                     file_content = None
                     file_name = None
 
-                    # Process each part of the multipart data
                     for part in multipart_data.parts:
-                        content_disposition = part.headers.get(b'Content-Disposition', b'').decode('utf-8')
-                        logging.info(f"Part Content-Disposition: {content_disposition}")
+                        part_headers = {k.decode('utf-8').lower(): v.decode('utf-8') for k, v in part.headers.items()}
+                        content_disposition = part_headers.get('content-disposition', '')
+                        logging.info(f"Part headers: {part_headers}")
                         
                         if 'name="type"' in content_disposition:
                             message_type = part.content.decode('utf-8').strip()
                         elif 'name="file"' in content_disposition:
-                            file_content = part.content.decode('utf-8').strip()
+                            file_content = part.content
                             file_name = content_disposition.split('filename=')[1].strip('"') if 'filename=' in content_disposition else 'unnamed_file'
 
-                    # Log received data
                     logging.info(f"Received message type: {message_type}")
                     logging.info(f"Received file: {file_name}")
-                    logging.info(f"File content: {file_content}")
+                    logging.info(f"File content length: {len(file_content) if file_content else 0}")
 
-                    # Your processing logic here
                     result = {
                         "message": "Data received successfully",
                         "type": message_type,
                         "fileName": file_name
                     }
-                    return func.HttpResponse(
-                        json.dumps(result),
-                        status_code=200,
-                        headers=headers,
-                        mimetype="application/json"
-                    )
+                    return func.HttpResponse(json.dumps(result), status_code=200, headers=headers, mimetype="application/json")
                 except Exception as e:
                     logging.error(f"Error parsing multipart data: {str(e)}")
                     logging.error(traceback.format_exc())
