@@ -1,9 +1,9 @@
+requests==2.32.3
+requests-toolbelt==1.0.0
 azure-functions
-requests
 azure-storage-blob
 azure-ai-textanalytics
 azure-core
 azure-identity
 python-dotenv
 werkzeug 
-requests-toolbelt
