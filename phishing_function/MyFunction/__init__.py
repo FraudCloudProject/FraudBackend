@@ -20,7 +20,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # Handle POST request
     if req.method == 'POST':
-        try:
+        # try:
             # Read the request body
             body = req.get_body()
             content_type = req.headers.get('Content-Type')
@@ -60,22 +60,22 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     headers=headers,
                     mimetype="application/json"
                 )
-        except ValueError as ve:
-            logging.error(f"ValueError: {str(ve)}")
-            return func.HttpResponse(
-                json.dumps({"error": "Invalid JSON input"}),
-                status_code=400,
-                headers=headers,
-                mimetype="application/json"
-            )
-        except Exception as e:
-            logging.error(f"Unexpected error: {str(e)}")
-            return func.HttpResponse(
-                json.dumps({"error": "Internal server error", "details": str(e)}),
-                status_code=500,
-                headers=headers,
-                mimetype="application/json"
-            )
+        # except ValueError as ve:
+        #     logging.error(f"ValueError: {str(ve)}")
+        #     return func.HttpResponse(
+        #         json.dumps({"error": "Invalid JSON input"}),
+        #         status_code=400,
+        #         headers=headers,
+        #         mimetype="application/json"
+        #     )
+        # except Exception as e:
+        #     logging.error(f"Unexpected error: {str(e)}")
+        #     return func.HttpResponse(
+        #         json.dumps({"error": "Internal server error", "details": str(e)}),
+        #         status_code=500,
+        #         headers=headers,
+        #         mimetype="application/json"
+        #     )
 
     # If the method is not supported, return a 405 Method Not Allowed response
     return func.HttpResponse(

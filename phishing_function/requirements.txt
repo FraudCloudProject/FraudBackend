@@ -6,3 +6,4 @@ requests
 azure-identity
 python-dotenv
 werkzeug 
+requests-toolbelt
