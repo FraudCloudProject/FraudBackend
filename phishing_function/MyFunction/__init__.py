@@ -1,86 +1,122 @@
 import logging
 import azure.functions as func
 import json
-from requests_toolbelt.multipart import decoder
+import traceback
+import cgi
 from io import BytesIO
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
-    # CORS headers
     headers = {
         "Access-Control-Allow-Origin": "https://jolly-bay-02c912b03.5.azurestaticapps.net",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
 
-    # Handle OPTIONS requests for CORS preflight
-    if req.method == 'OPTIONS':
-        return func.HttpResponse("", status_code=204, headers=headers)
+    try:
+        logging.info(f"Request method: {req.method}")
+        logging.info(f"Request headers: {dict(req.headers)}")
 
-    # Handle POST request
-    if req.method == 'POST':
-        # try:
-            # Read the request body
-            body = req.get_body()
-            content_type = req.headers.get('Content-Type')
-            
-            # Parse multipart/form-data
-            if content_type and 'multipart/form-data' in content_type:
-                multipart_data = decoder.MultipartDecoder(body, content_type)
-                fields = {part.headers[b'Content-Disposition'].decode('utf-8').split(';')[1].split('=')[1].strip('"'): part for part in multipart_data.parts}
+        # Handle CORS preflight request
+        if req.method == 'OPTIONS':
+            return func.HttpResponse("", status_code=204, headers=headers)
 
-                # Extract file and text data
-                file_part = fields.get('file')
-                if file_part:
-                    file_content = file_part.content.decode('utf-8')  # Change decoding based on your file type
-                    file_name = file_part.headers[b'Content-Disposition'].decode('utf-8').split(';')[2].split('=')[1].strip('"')
-                    logging.info(f"Received file: {file_name}")
-                    logging.info(f"File content: {file_content}")
+        # Only allow POST requests
+        if req.method == 'POST':
+            try:
+                body = req.get_body()
+                content_type = req.headers.get('Content-Type', '')
 
-                # Extract text data
-                text_part = fields.get('text')
-                if text_part:
-                    text_content = text_part.content.decode('utf-8')
-                    logging.info(f"Received text: {text_content}")
+                logging.info(f"Content-Type: {content_type}")
+                logging.info(f"Body length: {len(body)}")
 
-                # Your processing logic here
-                result = {"message": "Data received successfully"}
+                # Handle multipart/form-data
+                if 'multipart/form-data' in content_type:
+                    try:
+                        # Create a fake file-like object for parsing
+                        body_stream = BytesIO(body)
 
+                        # Parse multipart form data
+                        env = {'REQUEST_METHOD': 'POST'}
+                        form = cgi.FieldStorage(fp=body_stream, environ=env, headers=req.headers)
+
+                        message_type = form.getvalue('type')
+                        file_item = form['file']
+
+                        if file_item.filename:
+                            file_content = file_item.file.read()
+                            file_name = file_item.filename
+                        else:
+                            logging.error("No file content received")
+                            return func.HttpResponse(
+                                json.dumps({"error": "No file content received"}),
+                                status_code=400,
+                                headers=headers,
+                                mimetype="application/json"
+                            )
+
+                        logging.info(f"Received message type: {message_type}")
+                        logging.info(f"Received file: {file_name}")
+                        logging.info(f"File content length: {len(file_content)}")
+
+                        result = {
+                            "message": "Data received successfully",
+                            "type": message_type,
+                            "fileName": file_name
+                        }
+                        return func.HttpResponse(json.dumps(result), status_code=200, headers=headers, mimetype="application/json")
+
+                    except Exception as e:
+                        logging.error(f"Error parsing multipart data: {str(e)}")
+                        logging.error(traceback.format_exc())
+                        return func.HttpResponse(
+                            json.dumps({"error": "Error parsing multipart data", "details": str(e)}),
+                            status_code=400,
+                            headers=headers,
+                            mimetype="application/json"
+                        )
+                else:
+                    logging.warning(f"Unsupported Content-Type: {content_type}")
+                    return func.HttpResponse(
+                        json.dumps({"error": "Unsupported Content-Type", "received": content_type}),
+                        status_code=415,
+                        headers=headers,
+                        mimetype="application/json"
+                    )
+            except Exception as e:
+                logging.error(f"Unexpected error in POST processing: {str(e)}")
+                logging.error(traceback.format_exc())
                 return func.HttpResponse(
-                    json.dumps(result),
-                    status_code=200,
+                    json.dumps({
+                        "error": "Internal server error",
+                        "details": str(e),
+                        "type": str(type(e)),
+                        "traceback": traceback.format_exc()
+                    }),
+                    status_code=500,
                     headers=headers,
                     mimetype="application/json"
                 )
-            else:
-                return func.HttpResponse(
-                    json.dumps({"error": "Unsupported Content-Type"}),
-                    status_code=415,
-                    headers=headers,
-                    mimetype="application/json"
-                )
-        # except ValueError as ve:
-        #     logging.error(f"ValueError: {str(ve)}")
-        #     return func.HttpResponse(
-        #         json.dumps({"error": "Invalid JSON input"}),
-        #         status_code=400,
-        #         headers=headers,
-        #         mimetype="application/json"
-        #     )
-        # except Exception as e:
-        #     logging.error(f"Unexpected error: {str(e)}")
-        #     return func.HttpResponse(
-        #         json.dumps({"error": "Internal server error", "details": str(e)}),
-        #         status_code=500,
-        #         headers=headers,
-        #         mimetype="application/json"
-        #     )
-
-    # If the method is not supported, return a 405 Method Not Allowed response
-    return func.HttpResponse(
-        json.dumps({"error": "Method not allowed"}),
-        status_code=405,
-        headers=headers,
-        mimetype="application/json"
-    )
+        else:
+            logging.warning(f"Unsupported HTTP method: {req.method}")
+            return func.HttpResponse(
+                json.dumps({"error": "Method not allowed"}),
+                status_code=405,
+                headers=headers,
+                mimetype="application/json"
+            )
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
+        logging.error(traceback.format_exc())
+        return func.HttpResponse(
+            json.dumps({
+                "error": "Internal server error",
+                "details": str(e),
+                "type": str(type(e)),
+                "traceback": traceback.format_exc()
+            }),
+            status_code=500,
+            headers=headers,
+            mimetype="application/json"
+        )
