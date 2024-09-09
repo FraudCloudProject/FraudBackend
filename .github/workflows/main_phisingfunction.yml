@@ -77,7 +77,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: 'Deploy to Azure Functions'
-        uses: Azure/functions-action@v1
+        uses: Azure/functions-action@v2
         id: deploy-to-function
         with:
           deploymentMethod: zipDeploy
