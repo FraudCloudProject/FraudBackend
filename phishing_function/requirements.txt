@@ -5,4 +5,3 @@ azure-ai-textanalytics
 azure-core
 azure-identity
 python-dotenv
-werkzeug 
