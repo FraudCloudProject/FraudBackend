@@ -53,6 +53,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    deploymentMethod: zipDeploy
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-function.outputs.webapp-url }}
