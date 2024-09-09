@@ -1,9 +1,25 @@
 import logging
 import azure.functions as func
+from azure.ai.textanalytics import TextAnalyticsClient
+from azure.core.credentials import AzureKeyCredential
 import json
 import traceback
 import cgi
 from io import BytesIO
+import os
+import requests
+
+# endpoint = "https://homaphising.cognitiveservices.azure.com/"
+# key = os.environ['API_KEY_1']
+# key_1 = os.environ['API_KEY_1']
+# key_2 = os.environ['API_KEY_2']
+# text_analytics_client = TextAnalyticsClient(
+# endpoint=endpoint, credential=AzureKeyCredential(key))
+# # endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
+
+# # Fraud detection model endpoint
+# model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
+
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -60,11 +76,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         logging.info(f"Received file: {file_name}")
                         logging.info(f"File content length: {len(file_content)}")
 
-                        result = {
-                            "message": "Data received successfully",
-                            "type": message_type,
-                            "fileName": file_name
-                        }
+                        # Call your ML model here (example below)
+                        result = call_ml_model(file_content, message_type)
+                        
                         return func.HttpResponse(json.dumps(result), status_code=200, headers=headers, mimetype="application/json")
 
                     except Exception as e:
@@ -120,3 +134,49 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             headers=headers,
             mimetype="application/json"
         )
+
+def call_ml_model(file_content, message_type):
+    """Call the Azure ML model endpoint."""
+    # endpoint = "https://homaphising.cognitiveservices.azure.com/"
+    # key_1 = os.environ['API_KEY_1']
+    # key_2 = os.environ['API_KEY_2']
+    # text_analytics_client = TextAnalyticsClient(
+    # endpoint=endpoint, credential=AzureKeyCredential(key))
+    # endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
+
+    # Fraud detection model endpoint
+    model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
+
+
+    
+    try:
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {model_endpoint}'
+        }
+
+        # Prepare payload for the model
+        
+        data = {
+            "file_content": file_content.decode('utf-8'),  # Or base64 encode the file if necessary
+            "message_type": message_type
+        }
+
+        response = requests.post(model_endpoint, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": "Failed to call ML model",
+                "status_code": response.status_code,
+                "details": response.text
+            }
+
+    except Exception as e:
+        logging.error(f"Error calling ML model: {str(e)}")
+        logging.error(traceback.format_exc())
+        return {
+            "error": "Internal error calling ML model",
+            "details": str(e)
+        }
