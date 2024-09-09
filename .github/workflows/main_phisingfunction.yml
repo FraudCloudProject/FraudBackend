@@ -77,10 +77,9 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: 'Deploy to Azure Functions'
-        uses: Azure/functions-action@v2
+        uses: Azure/functions-action@v1
         id: deploy-to-function
         with:
-          deploymentMethod: zipDeploy
           app-name: 'phisingfunction'
           slot-name: 'Production'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
