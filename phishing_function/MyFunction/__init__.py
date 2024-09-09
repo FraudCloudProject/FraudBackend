@@ -1,6 +1,5 @@
 import logging
 import azure.functions as func
-from azure.core.credentials import AzureKeyCredential
 import json
 import traceback
 import cgi
