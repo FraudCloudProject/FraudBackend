@@ -1,4 +1,4 @@
-requests==2.32.3
+requests
 azure-functions
 azure-storage-blob
 azure-ai-textanalytics
