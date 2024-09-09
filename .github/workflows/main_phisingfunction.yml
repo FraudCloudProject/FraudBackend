@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: './phishing_function' # This is now correctly pointing to the root of your function app
-  PYTHON_VERSION: '3.9' # Python version to use
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './release.zip' # Set this to the zipped artifact
+  PYTHON_VERSION: '3.9' # Python version
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
       - name: Zip function app and dependencies for deployment
         run: |
           cd phishing_function
-          zip -r ../release.zip .  # Ensure the root directory is zipped, including `.python_packages`
+          zip -r ../release.zip . # Zipping the phishing_function directory contents (includes .python_packages)
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
