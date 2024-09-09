@@ -137,7 +137,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
 def call_ml_model(file_content, message_type):
     """Call the Azure ML model endpoint."""
-    # endpoint = "https://homaphising.cognitiveservices.azure.com/"
+    endpoint = "https://homaphising.cognitiveservices.azure.com/"
     # key_1 = os.environ['API_KEY_1']
     # key_2 = os.environ['API_KEY_2']
     # text_analytics_client = TextAnalyticsClient(
@@ -152,7 +152,6 @@ def call_ml_model(file_content, message_type):
     try:
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {model_endpoint}'
         }
 
         # Prepare payload for the model
