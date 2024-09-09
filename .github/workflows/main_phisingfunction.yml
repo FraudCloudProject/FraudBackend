@@ -35,7 +35,7 @@ jobs:
           source venv/bin/activate
 
       - name: Install dependencies
-        run: pip install -r phishing_function/requirements.txt
+        run: pip install --target="./.python_packages/lib/site-packages" -r  phishing_function/requirements.txt
 
       # Optional: Add step to run tests here
 
