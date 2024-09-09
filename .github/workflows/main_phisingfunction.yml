@@ -1,7 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure Functions: https://aka.ms/python-webapps-actions
-
 name: Build and deploy Python project to Azure Function App - phisingfunction
 
 on:
@@ -11,11 +7,8 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: './phishing_function' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.9' # set this to the python version to use (supports 3.6, 3.7, 3.8)¨
-  API_KEY_1: ${{ secrets.API_KEY_1 }}
-  API_KEY_2: ${{ secrets.API_KEY_2 }}
-
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './phishing_function' # Set this to the root of your function app project
+  PYTHON_VERSION: '3.9' # Use Python 3.9
 
 jobs:
   build:
@@ -29,19 +22,12 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-
       - name: Install dependencies
-        run: pip install --target="./.python_packages/lib/site-packages" -r phishing_function/requirements.txt
+        run: pip install -r phishing_function/requirements.txt
 
       - name: Zip artifact for deployment
         run: |
-          mkdir -p .python_packages/lib/site-packages
-          zip -r release.zip phishing_function .python_packages
-
+          zip -r release.zip phishing_function
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -49,7 +35,6 @@ jobs:
           name: python-app
           path: |
             release.zip
-            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -58,7 +43,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-function.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write # This is required for requesting the JWT
 
     steps:
       - name: Download artifact from build job
@@ -68,7 +53,7 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip     
-        
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -86,11 +71,3 @@ jobs:
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           scm-do-build-during-deployment: true
           enable-oryx-build: true
-
-
-      #   # Add this step to use your API keys in the deployment process
-      # - name: Use API Keys
-      #   run: |
-      #     echo "Using API Key 1: ${{ secrets.API_KEY_1 }}"
-      #     echo "Using API Key 2: ${{ secrets.API_KEY_2 }}"
-      #     # Example usage of API keys in a deployment command or script    
