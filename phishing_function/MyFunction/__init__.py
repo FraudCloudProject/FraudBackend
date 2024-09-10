@@ -9,6 +9,8 @@ from io import BytesIO
 import os
 import requests
 
+logging.basicConfig(filename='myapp.log', level=logging.INFO)
+
 # endpoint = "https://homaphising.cognitiveservices.azure.com/"
 # key = os.environ['API_KEY_1']
 # key_1 = os.environ['API_KEY_1']
@@ -194,9 +196,17 @@ def analyze_text_for_urls(text):
     key_2 = os.environ['API_KEY_2']
 
 
-    # Authenticate the client
-    credential = AzureKeyCredential(key_1, key_2)
-    text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
+        # If key_1 fails, try key_2 (this is an example logic)
+    try:
+        logging.info(f"key_1: {key_1}")
+
+        credential = AzureKeyCredential(key_1)
+        text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
+    except Exception as e:
+        logging.error(f"Failed with key_1, trying key_2: {e}")
+        credential = AzureKeyCredential(key_2)
+        text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
+
     try:
         # Detect language (optional, but recommended for better results)
         language = text_analytics_client.detect_language([text])[0]
