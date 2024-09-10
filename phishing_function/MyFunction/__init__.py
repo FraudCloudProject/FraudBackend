@@ -74,8 +74,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                         logging.info(f"Received message type: {message_type}")
                         logging.info(f"Received file: {file_name}")
-                        logging.info(f"File content length: {
-                                     len(file_content)}")
+                        logging.info(f"File content length: {len(file_content)}")
 
                         # Call your ML model here (example below)
                         result = call_ml_model(file_content, message_type)
