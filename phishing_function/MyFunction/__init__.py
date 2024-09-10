@@ -155,9 +155,14 @@ def call_ml_model(file_content, message_type):
         # Prepare payload for the model
         
         data = {
-            "file_content": file_content.decode('utf-8'),  # Or base64 encode the file if necessary
-            "message_type": message_type
+            "Inputs": {
+                "TEXT": file_content.decode('utf-8'),  # Assuming the content is a plain text
+                "URL": False, # Set to True if the content includes a URL
+                "EMAIL": message_type.lower() == 'email',  # Set to True if the message type is 'email'
+                "PHONE": message_type.lower() == 'sms'   # Set to True if the message type is 'phone'
+            }
         }
+
 
         response = requests.post(model_endpoint, headers=headers, json=data)
         
