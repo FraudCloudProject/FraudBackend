@@ -53,7 +53,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                         # Parse multipart form data
                         env = {'REQUEST_METHOD': 'POST'}
-                        form = cgi.FieldStorage(fp=body_stream, environ=env, headers=req.headers)
+                        form = cgi.FieldStorage(
+                            fp=body_stream, environ=env, headers=req.headers)
 
                         message_type = form.getvalue('type')
                         file_item = form['file']
@@ -64,7 +65,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         else:
                             logging.error("No file content received")
                             return func.HttpResponse(
-                                json.dumps({"error": "No file content received"}),
+                                json.dumps(
+                                    {"error": "No file content received"}),
                                 status_code=400,
                                 headers=headers,
                                 mimetype="application/json"
@@ -72,26 +74,31 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                         logging.info(f"Received message type: {message_type}")
                         logging.info(f"Received file: {file_name}")
-                        logging.info(f"File content length: {len(file_content)}")
+                        logging.info(f"File content length: {
+                                     len(file_content)}")
 
                         # Call your ML model here (example below)
                         result = call_ml_model(file_content, message_type)
-                        
+
                         return func.HttpResponse(json.dumps(result), status_code=200, headers=headers, mimetype="application/json")
 
                     except Exception as e:
-                        logging.error(f"Error parsing multipart data: {str(e)}")
+                        logging.error(
+                            f"Error parsing multipart data: {str(e)}")
                         logging.error(traceback.format_exc())
                         return func.HttpResponse(
-                            json.dumps({"error": "Error parsing multipart data", "details": str(e)}),
+                            json.dumps(
+                                {"error": "Error parsing multipart data", "details": str(e)}),
                             status_code=400,
                             headers=headers,
                             mimetype="application/json"
                         )
                 else:
-                    logging.warning(f"Unsupported Content-Type: {content_type}")
+                    logging.warning(
+                        f"Unsupported Content-Type: {content_type}")
                     return func.HttpResponse(
-                        json.dumps({"error": "Unsupported Content-Type", "received": content_type}),
+                        json.dumps(
+                            {"error": "Unsupported Content-Type", "received": content_type}),
                         status_code=415,
                         headers=headers,
                         mimetype="application/json"
@@ -133,39 +140,32 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
 
+
 def call_ml_model(file_content, message_type):
     """Call the Azure ML model endpoint."""
-    endpoint = "https://homaphising.cognitiveservices.azure.com/"
-    # key_1 = os.environ['API_KEY_1']
-    # key_2 = os.environ['API_KEY_2']
-    # text_analytics_client = TextAnalyticsClient(
-    # endpoint=endpoint, credential=AzureKeyCredential(key))
-    # endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
-
-    # Fraud detection model endpoint
     model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
-
-    
     try:
         headers = {
             'Content-Type': 'application/json',
         }
 
         # Prepare payload for the model
-        
         data = {
-            "Inputs": {"data":{
-                "TEXT": file_content.decode('utf-8'),  # Assuming the content is a plain text
-                "URL": False, # Set to True if the content includes a URL
-                "EMAIL": message_type.lower() == 'email',  # Set to True if the message type is 'email'
-                "PHONE": message_type.lower() == 'sms'   # Set to True if the message type is 'phone'
-            }}
+            "Inputs": {
+                "data": [
+                    {
+                        "TEXT": file_content.decode('utf-8'),  # Assuming plain text content
+                        "URL": False,  # Set to True if the content includes a URL
+                        "EMAIL": message_type.lower() == 'email',  # True if message type is 'email'
+                        "PHONE": message_type.lower() == 'sms'  # True if message type is 'sms'
+                    }
+                ]
+            }
         }
 
-
         response = requests.post(model_endpoint, headers=headers, json=data)
-        
+
         if response.status_code == 200:
             return response.json()
         else:
