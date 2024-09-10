@@ -9,7 +9,6 @@ from io import BytesIO
 import os
 import requests
 
-logging.basicConfig(filename='myapp.log', level=logging.INFO)
 
 # endpoint = "https://homaphising.cognitiveservices.azure.com/"
 # key = os.environ['API_KEY_1']
