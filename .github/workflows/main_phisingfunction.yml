@@ -9,8 +9,6 @@ on:
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './release.zip' # Set this to the zipped artifact
   PYTHON_VERSION: '3.9' # Python version
-  API_KEY_1: ${{ secrets.API_KEY_1 }} # API key for the Azure text analytics App
-  API_KEY_2: ${{ secrets.API_KEY_2 }} # API key for the Azure text analytics App  
 
 jobs:
   build:
