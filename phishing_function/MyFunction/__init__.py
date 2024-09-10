@@ -89,8 +89,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
 
                     except Exception as e:
-                        logging.error(
-                            f"Error parsing multipart data: {str(e)}")
+                        logging.error(f"Error parsing multipart data: {str(e)}")
                         logging.error(traceback.format_exc())
                         return func.HttpResponse(
                             json.dumps(
@@ -100,8 +99,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             mimetype="application/json"
                         )
                 else:
-                    logging.warning(
-                        f"Unsupported Content-Type: {content_type}")
+                    logging.warning(f"Unsupported Content-Type: {content_type}")
                     return func.HttpResponse(
                         json.dumps(
                             {"error": "Unsupported Content-Type", "received": content_type}),
@@ -192,10 +190,12 @@ def call_ml_model(file_content, message_type, url=False):
 def analyze_text_for_urls(text):
     # Replace with your own values
     endpoint = "https://homaphising.cognitiveservices.azure.com/"
-    key = os.environ['API_KEY_1']
+    key_1 = os.environ['API_KEY_1']
+    key_2 = os.environ['API_KEY_2']
+
 
     # Authenticate the client
-    credential = AzureKeyCredential(key)
+    credential = AzureKeyCredential(key_1, key_2)
     text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
     try:
         # Detect language (optional, but recommended for better results)
