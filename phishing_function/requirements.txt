@@ -1,3 +1,5 @@
 requests
 azure-functions
-
+azure-core
+msrest
+azure-ai-textanalytics

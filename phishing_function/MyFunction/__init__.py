@@ -1,5 +1,7 @@
 import logging
 import azure.functions as func
+from azure.core.credentials import AzureKeyCredential
+from azure.ai-textanalytics import TextAnalyticsClient
 import json
 import traceback
 import cgi
@@ -15,8 +17,6 @@ import requests
 # endpoint=endpoint, credential=AzureKeyCredential(key))
 # # endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
 
-# # Fraud detection model endpoint
-# model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -77,9 +77,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         logging.info(f"File content length: {len(file_content)}")
 
                         # Call your ML model here (example below)
-                        result = call_ml_model(file_content, message_type)
+                        url_result = analyze_text_for_urls(file_content.decode('utf-8'))
+                        url = False
+                        if len(url_result) > 0:
+                            url = True
 
-                        return func.HttpResponse(json.dumps(result), status_code=200, headers=headers, mimetype="application/json")
+                        result = call_ml_model(file_content, message_type, url=url)
+                        response_data = {
+                                    "result": result,
+                                    "url_result": url_result}
+                        return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
 
                     except Exception as e:
                         logging.error(
@@ -140,7 +147,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
-def call_ml_model(file_content, message_type):
+def call_ml_model(file_content, message_type, url=False):
     """Call the Azure ML model endpoint."""
     model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
@@ -148,14 +155,14 @@ def call_ml_model(file_content, message_type):
         headers = {
             'Content-Type': 'application/json',
         }
-
+        
         # Prepare payload for the model
         data = {
             "Inputs": {
                 "data": [
                     {
                         "TEXT": file_content.decode('utf-8'),  # Assuming plain text content
-                        "URL": False,  # Set to True if the content includes a URL
+                        "URL": url,  # Set to True if the content includes a URL
                         "EMAIL": message_type.lower() == 'email',  # True if message type is 'email'
                         "PHONE": message_type.lower() == 'sms'  # True if message type is 'sms'
                     }
@@ -181,3 +188,32 @@ def call_ml_model(file_content, message_type):
             "error": "Internal error calling ML model",
             "details": str(e)
         }
+
+def analyze_text_for_urls(text):
+    # Replace with your own values
+    endpoint = "https://homaphising.cognitiveservices.azure.com/"
+    key = os.environ['API_KEY_1']
+
+    # Authenticate the client
+    credential = AzureKeyCredential(key)
+    text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
+    try:
+        # Detect language (optional, but recommended for better results)
+        language = text_analytics_client.detect_language([text])[0]
+        
+        # Analyze for linked entities (including URLs)
+        result = text_analytics_client.recognize_linked_entities([text], language=language.primary_language.iso6391_name)[0]
+        
+        urls = []
+        for entity in result.entities:
+            if entity.data_source == "URL":
+                urls.append({
+                    "url": entity.url,
+                    "name": entity.name,
+                    "confidence_score": entity.confidence_score
+                })
+        
+        return urls
+    except Exception as err:
+        print("Encountered exception. {}".format(err))
+        return []
