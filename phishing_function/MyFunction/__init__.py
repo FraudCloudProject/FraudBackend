@@ -1,7 +1,7 @@
 import logging
 import azure.functions as func
 from azure.core.credentials import AzureKeyCredential
-from azure.ai-textanalytics import TextAnalyticsClient
+from azure.ai.textanalytics import TextAnalyticsClient
 import json
 import traceback
 import cgi
