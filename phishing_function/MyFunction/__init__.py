@@ -78,7 +78,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         logging.info(f"File content length: {len(file_content)}")
 
                         # Call your ML model here (example below)
-                        url_result = analyze_text_for_urls(file_content)
+                        url_result = analyze_text_for_urls(file_content.decode('utf-8'))
                         url = False
                         if len(url_result) > 0:
                             url = True
