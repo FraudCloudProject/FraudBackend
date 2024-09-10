@@ -143,7 +143,7 @@ def call_ml_model(file_content, message_type):
     # endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
 
     # Fraud detection model endpoint
-    model_endpoint = "d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io"
+    model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
 
     
