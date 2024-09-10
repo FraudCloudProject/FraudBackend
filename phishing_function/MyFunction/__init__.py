@@ -197,8 +197,6 @@ def analyze_text_for_urls(text):
 
         # If key_1 fails, try key_2 (this is an example logic)
     try:
-        logging.info(f"key_1: {key_1}")
-
         credential = AzureKeyCredential(key_1)
         text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
     except Exception as e:
