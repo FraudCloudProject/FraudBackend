@@ -1,23 +1,11 @@
 import logging
 import azure.functions as func
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.textanalytics import TextAnalyticsClient
 import json
 import traceback
 import cgi
 from io import BytesIO
 import os
 import requests
-
-
-# endpoint = "https://homaphising.cognitiveservices.azure.com/"
-# key = os.environ['API_KEY_1']
-# key_1 = os.environ['API_KEY_1']
-# key_2 = os.environ['API_KEY_2']
-# text_analytics_client = TextAnalyticsClient(
-# endpoint=endpoint, credential=AzureKeyCredential(key))
-# # endpoint=endpoint, credential=AzureKeyCredential(key_1, key_2))
-
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -78,15 +66,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         logging.info(f"File content length: {len(file_content)}")
 
                         # Call your ML model here (example below)
-                        url_result = analyze_text_for_urls(file_content.decode('utf-8'))
-                        url = False
-                        if len(url_result) > 0:
-                            url = True
 
-                        result = call_ml_model(file_content, message_type, url=url)
+
+                        result = call_ml_model(file_content, message_type)
                         response_data = {
-                                    "result": result,
-                                    "url_result": url_result}
+                                    "result": result}
                         return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
 
                     except Exception as e:
@@ -146,22 +130,32 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
-def call_ml_model(file_content, message_type, url=False):
-    """Call the Azure ML model endpoint."""
+import re
+
+def call_ml_model(file_content, message_type):
+    """Call the Azure ML model endpoint and check for URLs."""
     model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
     try:
-        headers = {
-            'Content-Type': 'application/json',
-        }
+        # Convert the file content to a string
+        content_str = file_content.decode('utf-8')
         
+        # Define the regex pattern for URLs
+        url_pattern = r'(https?://[^\s]+)'
+        
+        # Find all URLs in the content
+        urls = re.findall(url_pattern, content_str)
+        
+        # If URLs were found, set the `url` flag to True
+        url_detected = len(urls) > 0
+
         # Prepare payload for the model
         data = {
             "Inputs": {
                 "data": [
                     {
-                        "TEXT": file_content.decode('utf-8'),  # Assuming plain text content
-                        "URL": url,  # Set to True if the content includes a URL
+                        "TEXT": content_str,  # Send the full text content
+                        "URL": url_detected,  # Set to True if URLs were detected
                         "EMAIL": message_type.lower() == 'email',  # True if message type is 'email'
                         "PHONE": message_type.lower() == 'sms'  # True if message type is 'sms'
                     }
@@ -169,10 +163,20 @@ def call_ml_model(file_content, message_type, url=False):
             }
         }
 
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        # Make the API request to the model
         response = requests.post(model_endpoint, headers=headers, json=data)
 
         if response.status_code == 200:
-            return response.json()
+            model_result = response.json()
+            return {
+                "ml_result": model_result,
+                "url_detected": url_detected,
+                "urls": urls  # Return the list of URLs found
+            }
         else:
             return {
                 "error": "Failed to call ML model",
@@ -187,40 +191,3 @@ def call_ml_model(file_content, message_type, url=False):
             "error": "Internal error calling ML model",
             "details": str(e)
         }
-
-def analyze_text_for_urls(text):
-    # Replace with your own values
-    endpoint = "https://homaphising.cognitiveservices.azure.com/"
-    key_1 = os.environ['API_KEY_1']
-    key_2 = os.environ['API_KEY_2']
-
-
-        # If key_1 fails, try key_2 (this is an example logic)
-    try:
-        credential = AzureKeyCredential(key_1)
-        text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
-    except Exception as e:
-        logging.error(f"Failed with key_1, trying key_2: {e}")
-        credential = AzureKeyCredential(key_2)
-        text_analytics_client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
-
-    try:
-        # Detect language (optional, but recommended for better results)
-        language = text_analytics_client.detect_language([text])[0]
-        
-        # Analyze for linked entities (including URLs)
-        result = text_analytics_client.recognize_linked_entities([text], language=language.primary_language.iso6391_name)[0]
-        
-        urls = []
-        for entity in result.entities:
-            if entity.data_source == "URL":
-                urls.append({
-                    "url": entity.url,
-                    "name": entity.name,
-                    "confidence_score": entity.confidence_score
-                })
-        
-        return urls
-    except Exception as err:
-        print("Encountered exception. {}".format(err))
-        return []
