@@ -195,7 +195,7 @@ def call_ml_model(file_content, message_type):
         }
 
 def extract_text_from_pdf(pdf_path):
-    endpoint = os.environ["https://pdfconverterpihising.cognitiveservices.azure.com/"]
+    endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
     api_key = os.environ["PDF_API_KEY"]
     form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
     with open(pdf_path, "rb") as pdf_file:
