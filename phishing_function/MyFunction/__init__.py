@@ -6,7 +6,7 @@ import cgi
 from io import BytesIO
 import os
 import requests
-import fitz  # PyMuPDF for PDF processing
+from pdfminer.high_level import extract_text
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -206,17 +206,14 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
+from io import BytesIO
+from pdfminer.high_level import extract_text
 
 def convert_pdf_to_text(pdf_content):
-    """Convert PDF content to text using PyMuPDF."""
+    """Convert PDF content to text using pdfminer.six."""
     try:
         pdf_file = BytesIO(pdf_content)
-        doc = fitz.open(stream=pdf_file, filetype="pdf")
-        text = ""
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)  # Load each page
-            text += page.get_text()  # Extract text from page
-        doc.close()
+        text = extract_text(pdf_file)
         return text.encode('utf-8')  # Return the text in UTF-8 encoding
     except Exception as e:
         logging.error(f"Error converting PDF to text: {str(e)}")
