@@ -62,10 +62,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                 file_content = extract_text_from_pdf(BytesIO(file_content))
                                 logging.info(f"Converted PDF to text. Length: {len(file_content)}")
 
-                                response_data = {
-                                    "result": file_content,
-                                }
-                                return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
+                                # response_data = {
+                                #     "result": file_content,
+                                # }
+                                return func.HttpResponse(file_content, status_code=200, headers=headers, mimetype="application/json")
 
                             # Process the file content (whether plain text or converted PDF)
                             result = call_ml_model(file_content, message_type)
