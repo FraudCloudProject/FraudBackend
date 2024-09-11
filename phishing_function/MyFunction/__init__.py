@@ -206,6 +206,6 @@ def extract_text_from_pdf(pdf_stream):
 
     text = ""
     for page_result in result:
-        text += page_result 
+        text += page_result.text 
 
     return text
