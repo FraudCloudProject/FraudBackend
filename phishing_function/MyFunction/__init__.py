@@ -1,12 +1,15 @@
+import re
 import logging
 import azure.functions as func
 import json
 import traceback
+import cgi
 from io import BytesIO
 import os
 import requests
 from azure.ai.formrecognizer import FormRecognizerClient
 from azure.core.credentials import AzureKeyCredential
+
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -28,7 +31,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Only allow POST requests
         if req.method == 'POST':
             try:
-                # Read the request body as a stream
                 body = req.get_body()
                 content_type = req.headers.get('Content-Type', '')
 
@@ -37,24 +39,36 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                 # Handle multipart/form-data
                 if 'multipart/form-data' in content_type:
-                    body_stream = BytesIO(body)
-
-                    # Parse multipart form data
                     try:
-                        form = func.MultipartFormDataParser(body_stream, req.headers)
-                        file_item = form.get('file')
+                        # Create a fake file-like object for parsing
+                        body_stream = BytesIO(body)
 
-                        if file_item:
-                            file_content = file_item.read()
-                            logging.info(f"Received file of size: {len(file_content)}")
+                        # Parse multipart form data
+                        env = {'REQUEST_METHOD': 'POST'}
+                        form = cgi.FieldStorage(
+                            fp=body_stream, environ=env, headers=req.headers)
 
-                            # Extract text from PDF
-                            extracted_text = extract_text_from_pdf(BytesIO(file_content))
-                            logging.info(f"Converted PDF to text. Length: {len(extracted_text)}")
+                        message_type = form.getvalue('type')
+                        file_item = form['file']
 
-                            # Call ML model with extracted text
-                            message_type = form.get('type', '')
-                            result = call_ml_model(extracted_text, message_type)
+                        if file_item.filename:
+                            file_content = file_item.file.read()
+                            file_name = file_item.filename
+                            logging.info(f"Received file: {file_name}")
+
+                            # Check if the file is a PDF
+                            if file_name.endswith('.pdf'):
+                                file_content = extract_text_from_pdf(
+                                    file_content)
+                                response_data = {
+                                    "result": file_content,
+                                }
+                                return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
+                                logging.info(f"Converted PDF to text. Length: {
+                                             len(file_content)}")
+
+                            # Process the file content (whether plain text or converted PDF)
+                            result = call_ml_model(file_content, message_type)
                             response_data = {
                                 "result": result,
                             }
@@ -62,24 +76,29 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         else:
                             logging.error("No file content received")
                             return func.HttpResponse(
-                                json.dumps({"error": "No file content received"}),
+                                json.dumps(
+                                    {"error": "No file content received"}),
                                 status_code=400,
                                 headers=headers,
                                 mimetype="application/json"
                             )
                     except Exception as e:
-                        logging.error(f"Error parsing multipart data: {str(e)}")
+                        logging.error(
+                            f"Error parsing multipart data: {str(e)}")
                         logging.error(traceback.format_exc())
                         return func.HttpResponse(
-                            json.dumps({"error": "Error parsing multipart data", "details": str(e)}),
+                            json.dumps(
+                                {"error": "Error parsing multipart data", "details": str(e)}),
                             status_code=400,
                             headers=headers,
                             mimetype="application/json"
                         )
                 else:
-                    logging.warning(f"Unsupported Content-Type: {content_type}")
+                    logging.warning(
+                        f"Unsupported Content-Type: {content_type}")
                     return func.HttpResponse(
-                        json.dumps({"error": "Unsupported Content-Type", "received": content_type}),
+                        json.dumps(
+                            {"error": "Unsupported Content-Type", "received": content_type}),
                         status_code=415,
                         headers=headers,
                         mimetype="application/json"
@@ -121,20 +140,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
 
+
 def call_ml_model(file_content, message_type):
     """Call the Azure ML model endpoint and check for URLs."""
     model_endpoint = "http://d3251e64-1a14-46c8-b197-5541ab06a38e.swedencentral.azurecontainer.io/score"
 
     try:
         # Convert the file content to a string
-        content_str = file_content
-        
+        content_str = file_content.decode('utf-8')
+
         # Define the regex pattern for URLs
         url_pattern = r'(https?://[^\s]+)'
-        
+
         # Find all URLs in the content
         urls = re.findall(url_pattern, content_str)
-        
+
         # If URLs were found, set the `url` flag to True
         url_detected = len(urls) > 0
 
@@ -181,16 +201,20 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
-def extract_text_from_pdf(pdf_stream):
+
+def extract_text_from_pdf(pdf_path):
     endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
     api_key = os.environ["PDF_API_KEY"]
-    form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
-    poller = form_recognizer_client.begin_read_in_stream(pdf_stream, form_type="preprinted", pages="1-")
-    result = poller.result()
+    form_recognizer_client = FormRecognizerClient(
+        endpoint=endpoint, credential=AzureKeyCredential(api_key))
+    with open(pdf_path, "rb") as pdf_file:
+        poller = form_recognizer_client.begin_read_in_stream(
+            pdf_file, form_type="preprinted", pages="1-")
+        result = poller.result()
 
-    text = ""
-    for page_result in result.analyze_result.read_results:
-        for line in page_result.lines:
-            text += line.text + "\n"
+        text = ""
+        for page_result in result.analyze_result.read_results:
+            for line in page_result.lines:
+                text += line.text + "\n"
 
     return text
