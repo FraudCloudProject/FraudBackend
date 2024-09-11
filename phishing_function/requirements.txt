@@ -3,3 +3,4 @@ azure-functions
 azure-core
 msrest
 azure-ai-formrecognizer
+requests.toolbelt
