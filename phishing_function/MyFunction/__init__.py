@@ -200,13 +200,18 @@ def extract_text_from_pdf(pdf_stream):
     api_key = os.environ["PDF_API_KEY"]
     form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
 
-    # Use the correct method for reading PDF files
+    # Start the analysis process for the PDF document
     poller = form_recognizer_client.begin_recognize_content(pdf_stream)
     result = poller.result()
 
     text = ""
-    for page_result in result:
-        for line in page_result:
-            text += line.text 
+    
+    # Iterate over each page
+    for page in result:
+        # Iterate over the text elements in each page
+        for table in page.tables:
+            for cell in table.cells:
+                text += cell.text + " "
 
     return text
+
