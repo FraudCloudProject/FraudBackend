@@ -1,3 +1,4 @@
+import re
 import logging
 import azure.functions as func
 import json
@@ -7,6 +8,7 @@ from io import BytesIO
 import os
 import requests
 from azure.ai.formrecognizer import FormRecognizerClient
+from azure.core.credentials import AzureKeyCredential
 
 
 
@@ -131,7 +133,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
-import re
 
 def call_ml_model(file_content, message_type):
     """Call the Azure ML model endpoint and check for URLs."""
@@ -196,6 +197,7 @@ def call_ml_model(file_content, message_type):
 def extract_text_from_pdf(pdf_path):
     endpoint = os.environ["https://pdfconverterpihising.cognitiveservices.azure.com/"]
     api_key = os.environ["PDF_API_KEY"]
+    form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
     with open(pdf_path, "rb") as pdf_file:
         poller = form_recognizer_client.begin_read_in_stream(pdf_file, form_type="preprinted", pages="1-")
         result = poller.result()
