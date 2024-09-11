@@ -3,13 +3,12 @@ import logging
 import azure.functions as func
 import json
 import traceback
-import cgi
 from io import BytesIO
 import os
 import requests
 from azure.ai.formrecognizer import FormRecognizerClient
 from azure.core.credentials import AzureKeyCredential
-
+from requests_toolbelt.multipart import decoder
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -40,32 +39,33 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 # Handle multipart/form-data
                 if 'multipart/form-data' in content_type:
                     try:
-                        # Create a fake file-like object for parsing
-                        body_stream = BytesIO(body)
-
                         # Parse multipart form data
-                        env = {'REQUEST_METHOD': 'POST'}
-                        form = cgi.FieldStorage(
-                            fp=body_stream, environ=env, headers=req.headers)
+                        body_stream = BytesIO(body)
+                        multipart_data = decoder.MultipartDecoder(body, content_type)
 
-                        message_type = form.getvalue('type')
-                        file_item = form['file']
+                        file_item = None
+                        message_type = ""
 
-                        if file_item.filename:
-                            file_content = file_item.file.read()
-                            file_name = file_item.filename
+                        for part in multipart_data.parts:
+                            if part.headers[b'Content-Disposition'].startswith(b'form-data; name="file"'):
+                                file_item = part
+                            elif part.headers[b'Content-Disposition'].startswith(b'form-data; name="type"'):
+                                message_type = part.text
+
+                        if file_item:
+                            file_content = file_item.content
+                            file_name = file_item.headers[b'Content-Disposition'].decode().split('filename="')[1].split('"')[0]
                             logging.info(f"Received file: {file_name}")
 
                             # Check if the file is a PDF
                             if file_name.endswith('.pdf'):
-                                file_content = extract_text_from_pdf(
-                                    file_content)
+                                file_content = extract_text_from_pdf(BytesIO(file_content))
+                                logging.info(f"Converted PDF to text. Length: {len(file_content)}")
+
                                 response_data = {
                                     "result": file_content,
                                 }
                                 return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
-                                logging.info(f"Converted PDF to text. Length: {
-                                             len(file_content)}")
 
                             # Process the file content (whether plain text or converted PDF)
                             result = call_ml_model(file_content, message_type)
@@ -76,29 +76,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         else:
                             logging.error("No file content received")
                             return func.HttpResponse(
-                                json.dumps(
-                                    {"error": "No file content received"}),
+                                json.dumps({"error": "No file content received"}),
                                 status_code=400,
                                 headers=headers,
                                 mimetype="application/json"
                             )
                     except Exception as e:
-                        logging.error(
-                            f"Error parsing multipart data: {str(e)}")
+                        logging.error(f"Error parsing multipart data: {str(e)}")
                         logging.error(traceback.format_exc())
                         return func.HttpResponse(
-                            json.dumps(
-                                {"error": "Error parsing multipart data", "details": str(e)}),
+                            json.dumps({"error": "Error parsing multipart data", "details": str(e)}),
                             status_code=400,
                             headers=headers,
                             mimetype="application/json"
                         )
                 else:
-                    logging.warning(
-                        f"Unsupported Content-Type: {content_type}")
+                    logging.warning(f"Unsupported Content-Type: {content_type}")
                     return func.HttpResponse(
-                        json.dumps(
-                            {"error": "Unsupported Content-Type", "received": content_type}),
+                        json.dumps({"error": "Unsupported Content-Type", "received": content_type}),
                         status_code=415,
                         headers=headers,
                         mimetype="application/json"
@@ -139,7 +134,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             headers=headers,
             mimetype="application/json"
         )
-
 
 def call_ml_model(file_content, message_type):
     """Call the Azure ML model endpoint and check for URLs."""
@@ -201,20 +195,18 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
-
-def extract_text_from_pdf(pdf_path):
+def extract_text_from_pdf(pdf_stream):
     endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
     api_key = os.environ["PDF_API_KEY"]
     form_recognizer_client = FormRecognizerClient(
         endpoint=endpoint, credential=AzureKeyCredential(api_key))
-    with open(pdf_path, "rb") as pdf_file:
-        poller = form_recognizer_client.begin_read_in_stream(
-            pdf_file, form_type="preprinted", pages="1-")
-        result = poller.result()
+    poller = form_recognizer_client.begin_read_in_stream(
+        pdf_stream, form_type="preprinted", pages="1-")
+    result = poller.result()
 
-        text = ""
-        for page_result in result.analyze_result.read_results:
-            for line in page_result.lines:
-                text += line.text + "\n"
+    text = ""
+    for page_result in result.analyze_result.read_results:
+        for line in page_result.lines:
+            text += line.text + "\n"
 
     return text
