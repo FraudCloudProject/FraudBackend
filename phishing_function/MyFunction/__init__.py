@@ -205,8 +205,7 @@ def extract_text_from_pdf(pdf_stream):
     result = poller.result()
 
     text = ""
-    for page_result in result.analyze_result.read_results:
-        for line in page_result.lines:
-            text += line.text + "\n"
+    for page_result in result:
+        text += page_result 
 
     return text
