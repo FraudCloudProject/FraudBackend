@@ -3,4 +3,7 @@ azure-functions
 azure-core
 msrest
 azure-ai-textanalytics
-pdfminer.six==20201018
+cffi
+cryptography
+pdfminer.six
+
