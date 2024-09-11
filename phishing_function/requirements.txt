@@ -3,3 +3,5 @@ azure-functions
 azure-core
 msrest
 azure-ai-textanalytics
+PyMuPDF==1.18.19
+

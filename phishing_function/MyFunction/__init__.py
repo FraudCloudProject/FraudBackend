@@ -6,6 +6,7 @@ import cgi
 from io import BytesIO
 import os
 import requests
+import fitz  # PyMuPDF for PDF processing
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -51,11 +52,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                         if file_item.filename:
                             file_content = file_item.file.read()
                             file_name = file_item.filename
+                            logging.info(f"Received file: {file_name}")
+
+                            # Check if the file is a PDF
+                            if file_name.endswith('.pdf'):
+                                file_content = convert_pdf_to_text(file_content)
+                                logging.info(f"Converted PDF to text. Length: {len(file_content)}")
+
+                            # Process the file content (whether plain text or converted PDF)
+                            result = call_ml_model(file_content, message_type)
+                            response_data = {
+                                "result": result,
+                                "url_result": False
+                            }
+                            return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
                         else:
                             logging.error("No file content received")
                             return func.HttpResponse(
-                                json.dumps(
-                                    {"error": "No file content received"}),
+                                json.dumps({"error": "No file content received"}),
                                 status_code=400,
                                 headers=headers,
                                 mimetype="application/json"
@@ -191,3 +205,20 @@ def call_ml_model(file_content, message_type):
             "error": "Internal error calling ML model",
             "details": str(e)
         }
+
+
+def convert_pdf_to_text(pdf_content):
+    """Convert PDF content to text using PyMuPDF."""
+    try:
+        pdf_file = BytesIO(pdf_content)
+        doc = fitz.open(stream=pdf_file, filetype="pdf")
+        text = ""
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)  # Load each page
+            text += page.get_text()  # Extract text from page
+        doc.close()
+        return text.encode('utf-8')  # Return the text in UTF-8 encoding
+    except Exception as e:
+        logging.error(f"Error converting PDF to text: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise
