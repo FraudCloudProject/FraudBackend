@@ -2,8 +2,4 @@ requests
 azure-functions
 azure-core
 msrest
-azure-ai-textanalytics
-cffi
-cryptography
-pdfminer.six
-
+azure-ai-formrecognizer

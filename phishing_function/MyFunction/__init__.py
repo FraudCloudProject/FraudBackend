@@ -6,7 +6,8 @@ import cgi
 from io import BytesIO
 import os
 import requests
-from pdfminer.high_level import extract_text
+from azure.ai.formrecognizer import FormRecognizerClient
+
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -56,14 +57,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                             # Check if the file is a PDF
                             if file_name.endswith('.pdf'):
-                                file_content = convert_pdf_to_text(file_content)
+                                file_content = extract_text_from_pdf(file_content)
                                 logging.info(f"Converted PDF to text. Length: {len(file_content)}")
 
                             # Process the file content (whether plain text or converted PDF)
                             result = call_ml_model(file_content, message_type)
                             response_data = {
                                 "result": result,
-                                "url_result": False
                             }
                             return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
                         else:
@@ -74,19 +74,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                 headers=headers,
                                 mimetype="application/json"
                             )
-
-                        logging.info(f"Received message type: {message_type}")
-                        logging.info(f"Received file: {file_name}")
-                        logging.info(f"File content length: {len(file_content)}")
-
-                        # Call your ML model here (example below)
-
-
-                        result = call_ml_model(file_content, message_type)
-                        response_data = {
-                                    "result": result}
-                        return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
-
                     except Exception as e:
                         logging.error(f"Error parsing multipart data: {str(e)}")
                         logging.error(traceback.format_exc())
@@ -206,16 +193,16 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
-from io import BytesIO
-from pdfminer.high_level import extract_text
+def extract_text_from_pdf(pdf_path):
+    endpoint = os.environ["https://pdfconverterpihising.cognitiveservices.azure.com/"]
+    api_key = os.environ["PDF_API_KEY"]
+    with open(pdf_path, "rb") as pdf_file:
+        poller = form_recognizer_client.begin_read_in_stream(pdf_file, form_type="preprinted", pages="1-")
+        result = poller.result()
 
-def convert_pdf_to_text(pdf_content):
-    """Convert PDF content to text using pdfminer.six."""
-    try:
-        pdf_file = BytesIO(pdf_content)
-        text = extract_text(pdf_file)
-        return text.encode('utf-8')  # Return the text in UTF-8 encoding
-    except Exception as e:
-        logging.error(f"Error converting PDF to text: {str(e)}")
-        logging.error(traceback.format_exc())
-        raise
+        text = ""
+        for page_result in result.analyze_result.read_results:
+            for line in page_result.lines:
+                text += line.text + "\n"
+
+    return text
