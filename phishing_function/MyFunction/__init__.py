@@ -1,3 +1,4 @@
+import re
 import logging
 import azure.functions as func
 import json
@@ -7,6 +8,7 @@ import os
 import requests
 from azure.ai.formrecognizer import FormRecognizerClient
 from azure.core.credentials import AzureKeyCredential
+from requests_toolbelt.multipart import decoder
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -28,7 +30,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Only allow POST requests
         if req.method == 'POST':
             try:
-                # Read the request body as a stream
                 body = req.get_body()
                 content_type = req.headers.get('Content-Type', '')
 
@@ -37,24 +38,37 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                 # Handle multipart/form-data
                 if 'multipart/form-data' in content_type:
-                    body_stream = BytesIO(body)
-
-                    # Parse multipart form data
                     try:
-                        form = func.MultipartFormDataParser(body_stream, req.headers)
-                        file_item = form.get('file')
+                        # Parse multipart form data
+                        body_stream = BytesIO(body)
+                        multipart_data = decoder.MultipartDecoder(body, content_type)
+
+                        file_item = None
+                        message_type = ""
+
+                        for part in multipart_data.parts:
+                            if part.headers[b'Content-Disposition'].startswith(b'form-data; name="file"'):
+                                file_item = part
+                            elif part.headers[b'Content-Disposition'].startswith(b'form-data; name="type"'):
+                                message_type = part.text
 
                         if file_item:
-                            file_content = file_item.read()
-                            logging.info(f"Received file of size: {len(file_content)}")
+                            file_content = file_item.content
+                            file_name = file_item.headers[b'Content-Disposition'].decode().split('filename="')[1].split('"')[0]
+                            logging.info(f"Received file: {file_name}")
 
-                            # Extract text from PDF
-                            extracted_text = extract_text_from_pdf(BytesIO(file_content))
-                            logging.info(f"Converted PDF to text. Length: {len(extracted_text)}")
+                            # Check if the file is a PDF
+                            if file_name.endswith('.pdf'):
+                                file_content = extract_text_from_pdf(BytesIO(file_content))
+                                logging.info(f"Converted PDF to text. Length: {len(file_content)}")
 
-                            # Call ML model with extracted text
-                            message_type = form.get('type', '')
-                            result = call_ml_model(extracted_text, message_type)
+                                response_data = {
+                                    "result": file_content,
+                                }
+                                return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
+
+                            # Process the file content (whether plain text or converted PDF)
+                            result = call_ml_model(file_content, message_type)
                             response_data = {
                                 "result": result,
                             }
@@ -127,14 +141,14 @@ def call_ml_model(file_content, message_type):
 
     try:
         # Convert the file content to a string
-        content_str = file_content
-        
+        content_str = file_content.decode('utf-8')
+
         # Define the regex pattern for URLs
         url_pattern = r'(https?://[^\s]+)'
-        
+
         # Find all URLs in the content
         urls = re.findall(url_pattern, content_str)
-        
+
         # If URLs were found, set the `url` flag to True
         url_detected = len(urls) > 0
 
