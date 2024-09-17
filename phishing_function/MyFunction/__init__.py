@@ -61,6 +61,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             if file_name.endswith('.pdf'):
                                 file_content = extract_text_from_pdf(BytesIO(file_content))
                                 logging.info(f"Converted PDF to text. Length: {len(file_content)}")
+                                if result == "":
+                                    return func.HttpResponse("Error extracting text from PDF", status_code=500, headers=headers)
                             # Process the file content (whether plain text or converted PDF)
                             result = call_ml_model(file_content, message_type)
                             response_data = {
@@ -208,7 +210,7 @@ def extract_text_from_pdf(pdf_stream):
 
         text = ""
         for page_result in result:
-            for line in page_result.lines:
+            for line in page_result.lines:  
                 text += line.text + "\n"
         logging.info("Extracted text from PDF")
 
