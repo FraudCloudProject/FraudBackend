@@ -61,7 +61,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             if file_name.endswith('.pdf'):
                                 file_content = extract_text_from_pdf(BytesIO(file_content))
                                 logging.info(f"Converted PDF to text. Length: {len(file_content)}")
-                                if result == "":
+                                if file_content == "":
                                     return func.HttpResponse("Error extracting text from PDF", status_code=500, headers=headers)
                             else: 
                                 file_content = file_content.decode('utf-8')
