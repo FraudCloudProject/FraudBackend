@@ -200,7 +200,7 @@ def extract_text_from_pdf(pdf_stream):
     api_key = os.environ["PDF_API_KEY"]
     form_recognizer_client = FormRecognizerClient(
         endpoint=endpoint, credential=AzureKeyCredential(api_key))
-    poller = form_recognizer_client.begin_read_in_stream(
+    poller = form_recognizer_client.begin_recognize_content(
         pdf_stream, form_type="preprinted", pages="1-")
     result = poller.result()
 
