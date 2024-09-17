@@ -9,6 +9,7 @@ import requests
 from azure.ai.formrecognizer import FormRecognizerClient
 from azure.core.credentials import AzureKeyCredential
 from requests_toolbelt.multipart import decoder
+import time
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -191,18 +192,41 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
+
 def extract_text_from_pdf(pdf_stream):
     endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
     api_key = os.environ["PDF_API_KEY"]
     form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
 
-    # Use the correct method for reading PDF files
+    # Start the analysis process for the PDF document
     poller = form_recognizer_client.begin_recognize_content(pdf_stream)
-    result = poller.result()
 
+    # Get the operation location from the headers to poll later
+    operation_location = poller.headers.get('Operation-Location')
+
+    # Poll the service until the result is ready
+    max_attempts = 60  # You can adjust this number based on your timeout needs
+    result = None
+
+    for attempt in range(max_attempts):
+        # Sleep for a few seconds before checking again
+        time.sleep(5)
+        
+        # Get the result from the operation location URL
+        response = requests.get(operation_location, headers={"Ocp-Apim-Subscription-Key": api_key})
+        if response.status_code == 200:
+            result = response.json()
+            # Check if the result is ready (status: succeeded)
+            if result.get('status') == 'succeeded':
+                break
+    else:
+        raise Exception("Operation did not complete in time")
+
+    # Extract text from the result
     text = ""
-    for page_result in result:
-        for line in page_result.lines:
-            text += line.text + "\n"
+    for page in result['analyzeResult']['readResults']:
+        for line in page['lines']:
+            text += line['text'] + "\n"
 
     return text
+
