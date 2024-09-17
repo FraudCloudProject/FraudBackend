@@ -9,7 +9,6 @@ import requests
 from azure.ai.formrecognizer import FormRecognizerClient
 from azure.core.credentials import AzureKeyCredential
 from requests_toolbelt.multipart import decoder
-import time
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -62,8 +61,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             if file_name.endswith('.pdf'):
                                 file_content = extract_text_from_pdf(BytesIO(file_content))
                                 logging.info(f"Converted PDF to text. Length: {len(file_content)}")
-                            else:
-                                file_content = file_content.decode('utf-8')
+
+                                response_data = {
+                                    "result": file_content,
+                                }
+                                return func.HttpResponse(json.dumps(response_data), status_code=200, headers=headers, mimetype="application/json")
+
                             # Process the file content (whether plain text or converted PDF)
                             result = call_ml_model(file_content, message_type)
                             response_data = {
@@ -138,7 +141,7 @@ def call_ml_model(file_content, message_type):
 
     try:
         # Convert the file content to a string
-        content_str = file_content
+        content_str = file_content.decode('utf-8')
 
         # Define the regex pattern for URLs
         url_pattern = r'(https?://[^\s]+)'
@@ -192,41 +195,30 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
+from azure.ai.formrecognizer import FormRecognizerClient
+from azure.core.credentials import AzureKeyCredential
+from io import BytesIO
+import os
 
 def extract_text_from_pdf(pdf_stream):
+    # Azure Form Recognizer endpoint and API key
     endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
     api_key = os.environ["PDF_API_KEY"]
+
+    # Initialize the Form Recognizer client
     form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
 
-    # Start the analysis process for the PDF document
+    # Call Azure Form Recognizer to analyze the content of the PDF
     poller = form_recognizer_client.begin_recognize_content(pdf_stream)
 
-    # Get the operation location from the headers to poll later
-    operation_location = poller.headers.get('Operation-Location')
-
-    # Poll the service until the result is ready
-    max_attempts = 60  # You can adjust this number based on your timeout needs
-    result = None
-
-    for attempt in range(max_attempts):
-        # Sleep for a few seconds before checking again
-        time.sleep(5)
-        
-        # Get the result from the operation location URL
-        response = requests.get(operation_location, headers={"Ocp-Apim-Subscription-Key": api_key})
-        if response.status_code == 200:
-            result = response.json()
-            # Check if the result is ready (status: succeeded)
-            if result.get('status') == 'succeeded':
-                break
-    else:
-        raise Exception("Operation did not complete in time")
+    # Wait for the result (this will poll the API until the result is available)
+    result = poller.result()
 
     # Extract text from the result
-    text = ""
-    for page in result['analyzeResult']['readResults']:
-        for line in page['lines']:
-            text += line['text'] + "\n"
+    extracted_text = ""
+    for page in result:
+        for line in page.lines:
+            extracted_text += line.text + "\n"
 
-    return text
+    return extracted_text
 
