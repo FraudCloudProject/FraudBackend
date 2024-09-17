@@ -195,30 +195,18 @@ def call_ml_model(file_content, message_type):
             "details": str(e)
         }
 
-from azure.ai.formrecognizer import FormRecognizerClient
-from azure.core.credentials import AzureKeyCredential
-from io import BytesIO
-import os
-
 def extract_text_from_pdf(pdf_stream):
-    # Azure Form Recognizer endpoint and API key
     endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
     api_key = os.environ["PDF_API_KEY"]
-
-    # Initialize the Form Recognizer client
-    form_recognizer_client = FormRecognizerClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
-
-    # Call Azure Form Recognizer to analyze the content of the PDF
-    poller = form_recognizer_client.begin_recognize_content(pdf_stream)
-
-    # Wait for the result (this will poll the API until the result is available)
+    form_recognizer_client = FormRecognizerClient(
+        endpoint=endpoint, credential=AzureKeyCredential(api_key))
+    poller = form_recognizer_client.begin_read_in_stream(
+        pdf_stream, form_type="preprinted", pages="1-")
     result = poller.result()
 
-    # Extract text from the result
-    extracted_text = ""
-    for page in result:
-        for line in page.lines:
-            extracted_text += line.text + "\n"
+    text = ""
+    for page_result in result.analyze_result.read_results:
+        for line in page_result.lines:  
+            text += line.text + "\n"
 
-    return extracted_text
-
+    return text
