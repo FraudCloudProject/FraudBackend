@@ -63,6 +63,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                 logging.info(f"Converted PDF to text. Length: {len(file_content)}")
                                 if result == "":
                                     return func.HttpResponse("Error extracting text from PDF", status_code=500, headers=headers)
+                            else: 
+                                file_content = file_content.decode('utf-8')
+                                logging.info(f"Received text content. Length: {len(file_content)}")
                             # Process the file content (whether plain text or converted PDF)
                             result = call_ml_model(file_content, message_type)
                             response_data = {
@@ -137,7 +140,7 @@ def call_ml_model(file_content, message_type):
 
     try:
         # Convert the file content to a string
-        content_str = file_content.decode('utf-8')
+        content_str = file_content
 
         # Define the regex pattern for URLs
         url_pattern = r'(https?://[^\s]+)'
