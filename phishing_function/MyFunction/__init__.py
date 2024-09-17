@@ -196,17 +196,29 @@ def call_ml_model(file_content, message_type):
         }
 
 def extract_text_from_pdf(pdf_stream):
-    endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
-    api_key = os.environ["PDF_API_KEY"]
-    form_recognizer_client = FormRecognizerClient(
-        endpoint=endpoint, credential=AzureKeyCredential(api_key))
-    poller = form_recognizer_client.begin_recognize_content(
-        pdf_stream)
-    result = poller.result()
+    try:
+        logging.info("Starting extract_text_from_pdf function")
+        endpoint = "https://pdfconverterpihising.cognitiveservices.azure.com/"
+        api_key = os.environ["PDF_API_KEY"]
 
-    text = ""
-    for page_result in result.analyze_result.read_results:
-        for line in page_result.lines:  
-            text += line.text + "\n"
+        form_recognizer_client = FormRecognizerClient(
+            endpoint=endpoint, credential=AzureKeyCredential(api_key))
+        logging.info("Created FormRecognizerClient")
+        
+        poller = form_recognizer_client.begin_recognize_content(
+            pdf_stream)
+        logging.info("Called begin_recognize_content")
 
-    return text
+        result = poller.result()
+        logging.info("Got result from poller")
+
+        text = ""
+        for page_result in result.analyze_result.read_results:
+            for line in page_result.lines:  
+                text += line.text + "\n"
+        logging.info("Extracted text from PDF")
+
+        return text
+    except Exception as e:
+        logging.error(f"Error extracting text from PDF: {str(e)}")
+        return ""
